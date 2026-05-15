@@ -19,16 +19,16 @@ import { Awareness } from 'y-protocols/awareness';
 import { WebrtcProvider as YWebrtcProvider } from './webrtc';
 
 import { IForkProvider } from '@jupyter/docprovider';
-import { URLExt } from '@jupyterlab/coreutils';
+import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { IWebSocketFactory } from './websocket';
-//import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 
 import { WebRTCAwarenessProvider } from './awareness';
 
 const PLUGIN_ID = 'jupyter-webrtc-provider';
-const signalingServers = [
-  'ws://localhost:3000/content-service/webrtc-signaling'
-]; //JSON.parse(PageConfig.getOption('signalingServers'));
+const signalingServerUrls = PageConfig.getOption('signalingServers');
+const signalingServers = signalingServerUrls
+  ? JSON.parse(signalingServerUrls)
+  : ['api/signaling'];
 
 /**
  * A class to provide Yjs synchronization over WebRTC.
