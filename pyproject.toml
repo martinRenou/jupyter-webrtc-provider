@@ -23,8 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "jupyter-docprovider >=2.4.0a0,<3.0.0",
-    "jupyter-collaboration-ui >=2.4.0a0,<3.0.0",
+    "jupyter-docprovider >=2.4.0,<3.0.0",
+    "jupyter-collaboration-ui >=2.4.0,<3.0.0",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
