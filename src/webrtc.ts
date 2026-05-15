@@ -1,4 +1,5 @@
-import * as ws from 'lib0/websocket';
+import { IWebSocketFactory } from './websocket';
+import { WebsocketClient } from './websocket';
 import * as map from 'lib0/map';
 import * as error from 'lib0/error';
 import * as random from 'lib0/random';
@@ -603,11 +604,11 @@ const publishSignalingMessage = (
 /**
  * Signaling connection to a signaling server.
  */
-export class SignalingConn extends ws.WebsocketClient {
+export class SignalingConn extends WebsocketClient {
   providers: Set<WebrtcProvider>;
 
-  constructor(url: string) {
-    super(url);
+  constructor(url: string, webSocketFactory: IWebSocketFactory) {
+    super(url, { webSocketFactory });
     this.providers = new Set();
     this.on('connect', () => {
       log(`connected (${url})`);
@@ -754,6 +755,8 @@ export interface IProviderOptions {
   loadDocument?:
     | ((format: string, type: string, path: string) => Promise<any>)
     | null;
+  /** Factory function to create WebSocket connections. */
+  webSocketFactory: IWebSocketFactory;
 }
 
 /**
@@ -790,6 +793,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
   signalingUrls: string[];
   signalingConns: SignalingConn[];
   maxConns: number;
+  webSocketFactory: IWebSocketFactory;
   peerOpts: Peer.Options;
   loadDocument:
     | ((format: string, type: string, path: string) => Promise<any>)
@@ -813,8 +817,9 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       maxConns = 20 + math.floor(random.rand() * 15), // the random factor reduces the chance that n clients form a cluster
       filterBcConns = true,
       peerOpts = {}, // simple-peer options. See https://github.com/feross/simple-peer#peer--new-peeropts
-      loadDocument = null
-    }: IProviderOptions = {}
+      loadDocument = null,
+      webSocketFactory
+    }: IProviderOptions
   ) {
     super();
     this.roomName = roomName;
@@ -827,6 +832,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
     this.maxConns = maxConns;
     this.peerOpts = peerOpts;
     this.loadDocument = loadDocument;
+    this.webSocketFactory = webSocketFactory;
     this.contentLoaded = false;
     this.key = password
       ? cryptoutils.deriveKey(password, roomName)
@@ -866,7 +872,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       const signalingConn = map.setIfUndefined(
         signalingConns,
         url,
-        () => new SignalingConn(url)
+        () => new SignalingConn(url, this.webSocketFactory)
       );
       this.signalingConns.push(signalingConn);
       signalingConn.providers.add(this);
