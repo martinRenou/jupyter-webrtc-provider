@@ -28,7 +28,7 @@ const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
 const signalingServers = signalingServerUrls
   ? JSON.parse(signalingServerUrls)
-  : ['api/signaling'];
+  : ['https://flyio-signaling-server.fly.dev'];
 
 /**
  * A class to provide Yjs synchronization over WebRTC.
