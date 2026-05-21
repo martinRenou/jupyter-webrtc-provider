@@ -20,7 +20,7 @@ import { WebrtcProvider as YWebrtcProvider } from './webrtc';
 
 import { IForkProvider } from '@jupyter/docprovider';
 import { PageConfig, URLExt } from '@jupyterlab/coreutils';
-import { IWebSocketFactory } from './websocket';
+import { IWebSocket, IWebSocketFactory } from './websocket';
 
 import { WebRTCAwarenessProvider } from './awareness';
 
@@ -287,9 +287,14 @@ function getAbsoluteUrls(
  */
 class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
   constructor(
-    private _trans: TranslationBundle,
-    private _webSocketFactory: IWebSocketFactory
-  ) {}
+    trans: TranslationBundle,
+    webSocketFactory: IWebSocketFactory | undefined
+  ) {
+    this._trans = trans;
+    this._webSocketFactory =
+      webSocketFactory ??
+      (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+  }
 
   create(options: IDocumentProviderFactory.IOptions) {
     const absoluteSignalingServers = getAbsoluteUrls(
@@ -309,13 +314,20 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
       webSocketFactory: this._webSocketFactory
     });
   }
+
+  private _trans: TranslationBundle;
+  private _webSocketFactory: IWebSocketFactory;
 }
 
 /**
  * Awareness provider factory that creates WebSocket awareness providers.
  */
 class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
-  constructor(private _webSocketFactory: IWebSocketFactory) {}
+  constructor(webSocketFactory: IWebSocketFactory | undefined) {
+    this._webSocketFactory =
+      webSocketFactory ??
+      (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+  }
 
   create(options: IAwarenessProviderFactory.IOptions) {
     const absoluteSignalingServers = getAbsoluteUrls(
@@ -330,6 +342,8 @@ class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
       webSocketFactory: this._webSocketFactory
     });
   }
+
+  private _webSocketFactory: IWebSocketFactory;
 }
 
 /**
@@ -339,13 +353,13 @@ export const documentProviderFactoryPlugin: JupyterFrontEndPlugin<IDocumentProvi
   {
     id: PLUGIN_ID + '-document-factory',
     description: 'Provides a WebRTC document provider factory.',
-    requires: [ITranslator, IWebSocketFactory],
-    optional: [],
+    requires: [ITranslator],
+    optional: [IWebSocketFactory],
     provides: IDocumentProviderFactory,
     activate: async (
       app: JupyterFrontEnd,
       translator: ITranslator,
-      webSocketFactory: IWebSocketFactory
+      webSocketFactory?: IWebSocketFactory
     ) => {
       const trans = translator.load('jupyter_collaboration');
       return new WebRTCDocumentProviderFactory(trans, webSocketFactory);
@@ -359,12 +373,12 @@ export const awarenessProviderFactoryPlugin: JupyterFrontEndPlugin<IAwarenessPro
   {
     id: PLUGIN_ID + '-awareness-factory',
     description: 'Provides a WebRTC awareness provider factory.',
-    requires: [IWebSocketFactory],
-    optional: [],
+    requires: [],
+    optional: [IWebSocketFactory],
     provides: IAwarenessProviderFactory,
     activate: async (
       app: JupyterFrontEnd,
-      webSocketFactory: IWebSocketFactory
+      webSocketFactory?: IWebSocketFactory
     ) => {
       return new WebRTCAwarenessProviderFactory(webSocketFactory);
     }

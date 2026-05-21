@@ -1,8 +1,4 @@
 import { Token } from '@lumino/coreutils';
-import {
-  JupyterFrontEnd,
-  JupyterFrontEndPlugin
-} from '@jupyterlab/application';
 
 export interface IWebSocket {
   binaryType: BinaryType;
@@ -14,25 +10,11 @@ export interface IWebSocket {
   close(): void;
 }
 
-export type IWebSocketFactory = (url: string) => IWebSocket;
+export type IWebSocketFactory = (url: string) => Promise<IWebSocket>;
 
 export const IWebSocketFactory = new Token<IWebSocketFactory>(
   'jupyter-webrtc-provider:IWebSocketFactory'
 );
-
-const PLUGIN_ID = 'jupyter-webrtc-provider';
-
-export const webSocketFactoryPlugin: JupyterFrontEndPlugin<IWebSocketFactory> =
-  {
-    id: PLUGIN_ID + '-websocket-factory',
-    description: 'Provides a WebSocket factory for signaling connections.',
-    requires: [],
-    optional: [],
-    provides: IWebSocketFactory,
-    activate: async (app: JupyterFrontEnd) => {
-      return (url: string) => new WebSocket(url);
-    }
-  };
 
 type EventHandler = (...args: any[]) => void;
 
@@ -102,12 +84,12 @@ export class WebsocketClient extends EventEmitter {
     this._setupWS();
   }
 
-  private _setupWS(): void {
+  private async _setupWS(): Promise<void> {
     if (!this.shouldConnect || this.ws !== null) {
       return;
     }
 
-    const websocket = this._webSocketFactory(this.url);
+    const websocket = await this._webSocketFactory(this.url);
     if (this.binaryType) {
       websocket.binaryType = this.binaryType;
     }

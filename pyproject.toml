@@ -41,7 +41,6 @@ exclude = [".github", "binder"]
 [tool.hatch.build.targets.wheel.shared-data]
 "jupyter_webrtc_provider/labextension" = "share/jupyter/labextensions/jupyter-webrtc-provider"
 "install.json" = "share/jupyter/labextensions/jupyter-webrtc-provider/install.json"
-"jupyter-config/jupyter_webrtc_provider.json" = "etc/jupyter/jupyter_server_config.d/jupyter_webrtc_provider.json"
 
 [tool.hatch.build.hooks.version]
 path = "jupyter_webrtc_provider/_version.py"

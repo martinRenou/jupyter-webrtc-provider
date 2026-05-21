@@ -436,7 +436,7 @@ export class Room {
     this._bcSubscriber = (data: ArrayBuffer) =>
       cryptoutils.decrypt(new Uint8Array(data), key).then(m =>
         this.mux(() => {
-          const reply = readMessage(this, m, () => {});
+          const reply = readMessage(this, m, () => undefined);
           if (reply) {
             broadcastBcMessage(this, encoding.toUint8Array(reply));
           }
@@ -663,17 +663,18 @@ export class SignalingConn extends WebsocketClient {
               // ignore messages that are not addressed to this conn, or from clients that are connected via broadcastchannel
               return;
             }
-            const emitPeerChange = webrtcConns.has(data.from)
-              ? () => {}
-              : () =>
-                  room.provider.emit('peers', [
-                    {
-                      removed: [],
-                      added: [data.from],
-                      webrtcPeers: Array.from(room.webrtcConns.keys()),
-                      bcPeers: Array.from(room.bcConns)
-                    }
-                  ]);
+            const emitPeerChange = () => {
+              if (!webrtcConns.has(data.from)) {
+                room.provider.emit('peers', [
+                  {
+                    removed: [],
+                    added: [data.from],
+                    webrtcPeers: Array.from(room.webrtcConns.keys()),
+                    bcPeers: Array.from(room.bcConns)
+                  }
+                ]);
+              }
+            };
             switch (data.type) {
               case 'announce':
                 if (webrtcConns.size < room.provider.maxConns) {
