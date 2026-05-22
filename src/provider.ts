@@ -111,12 +111,12 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
         signaling: this._signalingServers,
         awareness: this._awareness,
         webSocketFactory: this._webSocketFactory,
-        loadDocument: async (
-          _format: string,
-          contentType: string,
-          path: string
-        ) => {
-          const model = await this._drive.get(path, { content: true });
+        loadDocument: async (format: string, type: string, path: string) => {
+          const model = await this._drive.get(path, {
+            content: true,
+            format: format as Contents.FileFormat,
+            type
+          });
           if (model.content === undefined) {
             return;
           }

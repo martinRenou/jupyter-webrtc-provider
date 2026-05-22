@@ -103,12 +103,16 @@ export class WebsocketClient extends EventEmitter {
       this.lastMessageReceived = Date.now();
       const data = event.data;
       const message = typeof data === 'string' ? JSON.parse(data) : data;
-      if (message && message.type === 'pong') {
-        clearTimeout(pingTimeout);
-        pingTimeout = setTimeout(
-          () => this._sendPing(),
-          messageReconnectTimeout / 2
-        );
+      if (message) {
+        if (message.type === 'pong') {
+          clearTimeout(pingTimeout);
+          pingTimeout = setTimeout(
+            () => this.send({ type: 'ping' }),
+            messageReconnectTimeout / 2
+          );
+        } else if (message.type === 'ping') {
+          this.send({ type: 'pong' });
+        }
       }
       this.emit('message', [message, this]);
     };
@@ -143,16 +147,10 @@ export class WebsocketClient extends EventEmitter {
       this.unsuccessfulReconnects = 0;
       this.emit('connect', [{ type: 'connect' }, this]);
       pingTimeout = setTimeout(
-        () => this._sendPing(),
+        () => this.send({ type: 'ping' }),
         messageReconnectTimeout / 2
       );
     };
-  }
-
-  private _sendPing(): void {
-    if (this.ws) {
-      this.send({ type: 'ping' });
-    }
   }
 
   send(message: any): void {
