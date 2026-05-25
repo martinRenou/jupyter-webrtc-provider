@@ -4,6 +4,8 @@
 
 A JupyterLab extension for a WebRTC shared document provider.
 
+Install [jupyter-server-signaling](https://github.com/davidbrochart/jupyter-server-signaling) for running a signaling server as a Jupyter server extension. Otherwise it will use a [public server](https://flyio-signaling-server.fly.dev).
+
 ## Requirements
 
 - JupyterLab >= 4.0.0

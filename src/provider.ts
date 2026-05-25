@@ -122,7 +122,6 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
           }
           try {
             this._sharedModel.source = model.content;
-            this._sharedModel.dirty = false;
           } catch (e) {
             console.error('Failed to load file content:', e);
           }
