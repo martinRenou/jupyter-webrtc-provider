@@ -55,7 +55,8 @@
         "watch:labextension": "jupyter labextension watch ."
     },
     "dependencies": {
-        "@jupyter/docprovider": "next",
+        "@jupyter/docprovider": "^4.4.0",
+        "@jupyter/ydoc": "4.0.0-a3",
         "@jupyterlab/application": "^4.0.0",
         "simple-peer": "^9.11.1"
     },
@@ -85,7 +86,8 @@
         "yjs": "^13.5.0"
     },
     "resolutions": {
-        "lib0": "0.2.111"
+        "lib0": "0.2.111",
+        "@jupyter/ydoc": "4.0.0-a3"
     },
     "sideEffects": [
         "style/*.css",

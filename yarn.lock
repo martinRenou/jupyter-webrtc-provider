@@ -586,23 +586,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/collaborative-drive@npm:^4.4.0-alpha.0":
-  version: 4.4.0-alpha.0
-  resolution: "@jupyter/collaborative-drive@npm:4.4.0-alpha.0"
+"@jupyter/collaborative-drive@npm:^4.4.0":
+  version: 4.4.0
+  resolution: "@jupyter/collaborative-drive@npm:4.4.0"
   dependencies:
     "@jupyter/ydoc": ^2.1.3 || ^3.0.0
     "@jupyterlab/services": ^7.5.0
     "@lumino/coreutils": ^2.2.1
     "@lumino/disposable": ^2.1.4
-  checksum: 580b57bc557ac16f5b09734fd41ef0afca0e0e8af958a89bdf28c507e5eb5429ca329811b6d6e45fa6776c7c0503fd148841644351cee13d19b6ab8a1e94f3ff
+  checksum: 9b932fc72c255054078e7e6429c58ff8a931e854405615e207334eda32b79ce1a2a995f86758191e5bac1fe0a167c342374128f0116d485bb8542ee62aacbff5
   languageName: node
   linkType: hard
 
-"@jupyter/docprovider@npm:next":
-  version: 4.4.0-alpha.0
-  resolution: "@jupyter/docprovider@npm:4.4.0-alpha.0"
+"@jupyter/docprovider@npm:^4.4.0":
+  version: 4.4.0
+  resolution: "@jupyter/docprovider@npm:4.4.0"
   dependencies:
-    "@jupyter/collaborative-drive": ^4.4.0-alpha.0
+    "@jupyter/collaborative-drive": ^4.4.0
     "@jupyter/ydoc": ^2.1.3 || ^3.0.0
     "@jupyterlab/apputils": ^4.5.0
     "@jupyterlab/cells": ^4.5.0
@@ -618,7 +618,7 @@ __metadata:
     y-protocols: ^1.0.5
     y-websocket: ^1.3.15
     yjs: ^13.5.40
-  checksum: c1db7674708a5d69494840bbad5b1845e2a32a0840bff7784812e11b0cd1e62db884fcff58db3cacfb44f3868e1f041427d98afbd8f0c319b9224bac906119c2
+  checksum: cd829a3467a7230e360b085e02e4b8641eec58df0aeb5671662bf0a96a5d49281d00e00ea477079494c90d5281cbcb8d983f4630bcae16c7de9c376b5ed95e90
   languageName: node
   linkType: hard
 
@@ -644,9 +644,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyter/ydoc@npm:^2.1.3 || ^3.0.0, @jupyter/ydoc@npm:^3.1.0":
-  version: 3.4.1
-  resolution: "@jupyter/ydoc@npm:3.4.1"
+"@jupyter/ydoc@npm:4.0.0-a3":
+  version: 4.0.0-a3
+  resolution: "@jupyter/ydoc@npm:4.0.0-a3"
   dependencies:
     "@jupyterlab/nbformat": ^3.0.0 || ^4.0.0-alpha.21 || ^4.0.0
     "@lumino/coreutils": ^1.11.0 || ^2.0.0
@@ -654,7 +654,7 @@ __metadata:
     "@lumino/signaling": ^1.10.0 || ^2.0.0
     y-protocols: ^1.0.5
     yjs: ^13.5.40
-  checksum: 58fc222bb5a4d2fbf6b41668442793717253d55e7b5181ce9048780d2ce7bc061538c464356d6293d34ad33c9a550cd8c377b56e281eb55b18fde7e6a022d68c
+  checksum: feda13da20d052207cf8e489062afaab698b8e7347d1c13a77423b62a8f314131eb939a2fbf3aaf5f0f0b51f846d0c5b4878c4cb8e1cafa092dd4938156b0ebd
   languageName: node
   linkType: hard
 
@@ -5350,7 +5350,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "jupyter-webrtc-provider@workspace:."
   dependencies:
-    "@jupyter/docprovider": next
+    "@jupyter/docprovider": ^4.4.0
+    "@jupyter/ydoc": 4.0.0-a3
     "@jupyterlab/application": ^4.0.0
     "@jupyterlab/builder": ^4.0.0
     "@types/json-schema": ^7.0.11
