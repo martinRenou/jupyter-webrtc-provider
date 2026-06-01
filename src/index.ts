@@ -1,5 +1,5 @@
 export { IWebSocketFactory } from './websocket';
-export { IRoomIdFactory } from './roomid';
+export { IRoomIdManager } from './roomid';
 
 import { JupyterFrontEndPlugin } from '@jupyterlab/application';
 

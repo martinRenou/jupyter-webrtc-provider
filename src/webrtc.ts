@@ -19,7 +19,7 @@ import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 
 import * as cryptoutils from './crypto';
-import { IRoomIdFactory } from './roomid';
+import { IRoomIdManager } from './roomid';
 
 const log = logging.createModuleLogger('webrtc');
 
@@ -611,11 +611,11 @@ export class SignalingConn extends WebsocketClient {
   constructor(
     url: string,
     webSocketFactory: IWebSocketFactory,
-    roomIdFactory: IRoomIdFactory
+    roomIdManager: IRoomIdManager
   ) {
     super(url, { webSocketFactory });
     this.providers = new Set();
-    this.roomIdFactory = roomIdFactory;
+    this.roomIdManager = roomIdManager;
     this.on('connect', () => {
       log(`connected (${url})`);
       const topics = Array.from(rooms.keys());
@@ -632,18 +632,25 @@ export class SignalingConn extends WebsocketClient {
         case 'publish': {
           const roomName = m.topic;
           if (m.clients === 1) {
-            const { format, contentType, path } =
-              this.roomIdFactory.parseRoomId(roomName);
-            // we are the first client and it's a stored document, let's load it
-            // Find the provider with the matching roomName
-            const provider = Array.from(this.providers).find(
-              p => p.roomName === roomName
-            );
-            if (provider && provider.loadDocument && !provider.contentLoaded) {
-              provider.loadDocument(format, contentType, path);
-              provider.contentLoaded = true;
+            const parsed = this.roomIdManager.parseRoomId(roomName);
+            if (parsed) {
+              const { format, contentType, path } = parsed;
+
+              // we are the first client and it's a stored document, let's load it
+              // Find the provider with the matching roomName
+              const provider = Array.from(this.providers).find(
+                p => p.roomName === roomName
+              );
+              if (
+                provider &&
+                provider.loadDocument &&
+                !provider.contentLoaded
+              ) {
+                provider.loadDocument(format, contentType, path);
+                provider.contentLoaded = true;
+              }
+              provider?.emit('firstClient', [{ roomName }]);
             }
-            provider?.emit('firstClient', [{ roomName }]);
           }
           const room = rooms.get(roomName);
           if (room === undefined || typeof roomName !== 'string') {
@@ -733,7 +740,7 @@ export class SignalingConn extends WebsocketClient {
     this.on('disconnect', () => log(`disconnect (${url})`));
   }
 
-  roomIdFactory: IRoomIdFactory;
+  roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -758,7 +765,7 @@ export interface IProviderOptions {
     | null;
   /** Factory function to create WebSocket connections. */
   webSocketFactory: IWebSocketFactory;
-  roomIdFactory: IRoomIdFactory;
+  roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -796,7 +803,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
   signalingConns: SignalingConn[];
   maxConns: number;
   webSocketFactory: IWebSocketFactory;
-  roomIdFactory: IRoomIdFactory;
+  roomIdManager: IRoomIdManager;
   peerOpts: Peer.Options;
   loadDocument:
     | ((format: string, type: string, path: string) => Promise<any>)
@@ -822,7 +829,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       peerOpts = {}, // simple-peer options. See https://github.com/feross/simple-peer#peer--new-peeropts
       loadDocument = null,
       webSocketFactory,
-      roomIdFactory
+      roomIdManager
     }: IProviderOptions
   ) {
     super();
@@ -837,7 +844,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
     this.peerOpts = peerOpts;
     this.loadDocument = loadDocument;
     this.webSocketFactory = webSocketFactory;
-    this.roomIdFactory = roomIdFactory;
+    this.roomIdManager = roomIdManager;
     this.contentLoaded = false;
     this.key = password
       ? cryptoutils.deriveKey(password, roomName)
@@ -877,7 +884,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       const signalingConn = map.setIfUndefined(
         signalingConns,
         url,
-        () => new SignalingConn(url, this.webSocketFactory, this.roomIdFactory)
+        () => new SignalingConn(url, this.webSocketFactory, this.roomIdManager)
       );
       this.signalingConns.push(signalingConn);
       signalingConn.providers.add(this);

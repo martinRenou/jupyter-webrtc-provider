@@ -1,10 +1,10 @@
 import { Token } from '@lumino/coreutils';
 
-export const IRoomIdFactory = new Token<IRoomIdFactory>(
-  'jupyter-webrtc-provider:IRoomIdFactory'
+export const IRoomIdManager = new Token<IRoomIdManager>(
+  'jupyter-webrtc-provider:IRoomIdManager'
 );
 
-export type IRoomIdFactory = {
+export type IRoomIdManager = {
   /**
    * Compute the roomId given the format, contentType and path
    * @param format
@@ -21,14 +21,19 @@ export type IRoomIdFactory = {
     format: string;
     contentType: string;
     path: string;
-  };
+  } | null;
 };
 
-export const DEFAULT_ROOM_ID_FACTORY: IRoomIdFactory = {
+export const DEFAULT_ROOM_ID_FACTORY: IRoomIdManager = {
   getRoomId: (format: string, contentType: string, path: string) =>
     `${format}:${contentType}:${path}`,
   parseRoomId: (roomId: string) => {
     const split = roomId.split(':');
+
+    if (split.length !== 3) {
+      return null;
+    }
+
     return {
       format: split[0],
       contentType: split[1],
