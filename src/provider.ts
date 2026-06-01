@@ -23,7 +23,7 @@ import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { IWebSocket, IWebSocketFactory } from './websocket';
 
 import { WebRTCAwarenessProvider } from './awareness';
-import { DEFAULT_ROOM_ID_FACTORY, IRoomIdManager } from './roomid';
+import { DEFAULT_ROOM_ID_MANAGER, IRoomIdManager } from './roomid';
 
 const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
@@ -309,7 +309,7 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
-    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_FACTORY;
+    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
   create(options: IDocumentProviderFactory.IOptions) {
@@ -348,7 +348,7 @@ class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
-    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_FACTORY;
+    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
   create(options: IAwarenessProviderFactory.IOptions) {

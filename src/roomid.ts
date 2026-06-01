@@ -24,7 +24,7 @@ export type IRoomIdManager = {
   } | null;
 };
 
-export const DEFAULT_ROOM_ID_FACTORY: IRoomIdManager = {
+export const DEFAULT_ROOM_ID_MANAGER: IRoomIdManager = {
   getRoomId: (format: string, contentType: string, path: string) =>
     `${format}:${contentType}:${path}`,
   parseRoomId: (roomId: string) => {
