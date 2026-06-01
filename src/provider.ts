@@ -117,7 +117,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
         signaling: this._signalingServers,
         awareness: this._awareness,
         webSocketFactory: this._webSocketFactory,
-        rommIdFactory: this._roomIdFactory,
+        roomIdFactory: this._roomIdFactory,
         loadDocument: async (format: string, type: string, path: string) => {
           const model = await this._drive.get(path, {
             content: true,
@@ -155,7 +155,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
         signaling: this._signalingServers,
         awareness: this._awareness,
         webSocketFactory: this._webSocketFactory,
-        rommIdFactory: this._roomIdFactory
+        roomIdFactory: this._roomIdFactory
       }
     );
     this._webrtcProvider.on('synced', this._onSynced);
