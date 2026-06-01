@@ -636,15 +636,21 @@ export class SignalingConn extends WebsocketClient {
               const provider = Array.from(this.providers).find(
                 p => p.roomName === roomName
               );
-              if (
-                provider &&
-                provider.loadDocument &&
-                !provider.contentLoaded
-              ) {
-                provider.loadDocument(fileFormat, fileType, filePath);
-                provider.contentLoaded = true;
+              if (provider && provider.loadDocument && !provider.contentLoaded) {
+                void provider
+                  .loadDocument(fileFormat, fileType, filePath)
+                  .then(() => {
+                    provider.contentLoaded = true;
+                  })
+                  .catch(error => {
+                    console.error('Failed to load initial shared document:', error);
+                  })
+                  .finally(() => {
+                    provider.emit('firstClient', [{ roomName }]);
+                  });
+              } else {
+                provider?.emit('firstClient', [{ roomName }]);
               }
-              provider?.emit('firstClient', [{ roomName }]);
             }
           }
           const room = rooms.get(roomName);

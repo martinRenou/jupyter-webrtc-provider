@@ -116,6 +116,23 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
     this._ready.resolve();
   }
 
+  private _setSharedModelContent(content: any): void {
+    const model = this._sharedModel as any;
+    if (typeof model.setSource === 'function') {
+      model.setSource(content);
+      return;
+    }
+    model.source = content;
+  }
+
+  private _getSharedModelContent(): any {
+    const model = this._sharedModel as any;
+    if (typeof model.getSource === 'function') {
+      return model.getSource();
+    }
+    return model.source;
+  }
+
   private async _connect(): Promise<void> {
     this._isReadyResolved = false;
     this._sharedModel.ydoc.on('update', this._onDocUpdate);
@@ -140,11 +157,12 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
             format: format as Contents.FileFormat,
             type
           });
+          console.log('--- DEBUG got content for ', path, model);
           if (model.content === undefined) {
             return;
           }
           try {
-            this._sharedModel.source = model.content;
+            this._setSharedModelContent(model.content);
           } catch (e) {
             console.error('Failed to load file content:', e);
           }
@@ -175,7 +193,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
   }
 
   async save(): Promise<void> {
-    const content = this._sharedModel.source;
+    const content = this._getSharedModelContent();
     const model = await this._drive.save(this._path, {
       content,
       format: this._format as Contents.FileFormat,
