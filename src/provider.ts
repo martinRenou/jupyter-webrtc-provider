@@ -103,7 +103,30 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
     this._connect();
   }
 
+  private _resolveReady(): void {
+    if (this._isReadyResolved) {
+      return;
+    }
+    this._isReadyResolved = true;
+    if (this._readyFallbackTimer !== null) {
+      clearTimeout(this._readyFallbackTimer);
+      this._readyFallbackTimer = null;
+    }
+    this._sharedModel.ydoc.off('update', this._onDocUpdate);
+    this._ready.resolve();
+  }
+
   private async _connect(): Promise<void> {
+    this._isReadyResolved = false;
+    this._sharedModel.ydoc.on('update', this._onDocUpdate);
+    if (this._readyFallbackTimer !== null) {
+      clearTimeout(this._readyFallbackTimer);
+    }
+    this._readyFallbackTimer = window.setTimeout(() => {
+      console.warn('Ready fallback timeout reached, resolving provider ready', this._path);
+      this._resolveReady();
+    }, 8000);
+
     this._webrtcProvider = new YWebrtcProvider(
       `${this._format}:${this._contentType}:${this._path}`,
       this._sharedModel.ydoc,
@@ -134,9 +157,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
     );
 
     this._webrtcProvider.on('synced', this._onSynced);
-    this._webrtcProvider.on('firstClient', () => {
-      this._ready.resolve();
-    });
+    this._webrtcProvider.on('firstClient', this._onFirstClient);
   }
 
   async connectToForkDoc(forkRoomId: string, sessionId: string): Promise<void> {
@@ -168,22 +189,40 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
 
   private _disconnect(): void {
     this._webrtcProvider?.off('synced', this._onSynced);
+    this._webrtcProvider?.off('firstClient', this._onFirstClient);
     this._webrtcProvider?.destroy();
     this._webrtcProvider = null;
+    if (this._readyFallbackTimer !== null) {
+      clearTimeout(this._readyFallbackTimer);
+      this._readyFallbackTimer = null;
+    }
+    this._sharedModel.ydoc.off('update', this._onDocUpdate);
   }
 
   private _onUserChanged(user: User.IManager): void {
     this._awareness.setLocalStateField('user', user.identity);
   }
 
+  private _onFirstClient = () => {
+    this._resolveReady();
+  };
+
+  private _onDocUpdate = (_update: Uint8Array, _origin: any) => {
+    this._resolveReady();
+  };
+
   private _onSynced = (event: any) => {
+    if (!event?.synced) {
+      return;
+    }
+
     if (this._webrtcProvider) {
       this._webrtcProvider.off('synced', this._onSynced);
 
       const state = this._sharedModel.ydoc.getMap('state');
       state.set('document_id', this._webrtcProvider.roomName);
     }
-    this._ready.resolve();
+    this._resolveReady();
   };
 
   private _awareness: Awareness;
@@ -192,6 +231,8 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
   private _isDisposed: boolean;
   private _path: string;
   private _ready = new PromiseDelegate<void>();
+  private _isReadyResolved = false;
+  private _readyFallbackTimer: number | null = null;
   private _sharedModel: YDocument<DocumentChange>;
   private _webrtcProvider: YWebrtcProvider | null;
   private _signalingServers: string[];
