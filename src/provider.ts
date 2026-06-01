@@ -10,7 +10,7 @@ import { ITranslator, TranslationBundle } from '@jupyterlab/translation';
 import { IDocumentProvider } from '@jupyter/collaborative-drive';
 import { ServerConnection, User, Contents } from '@jupyterlab/services';
 
-import { PromiseDelegate, Token } from '@lumino/coreutils';
+import { PromiseDelegate } from '@lumino/coreutils';
 import { Signal } from '@lumino/signaling';
 
 import { DocumentChange, YDocument } from '@jupyter/ydoc';
@@ -23,22 +23,13 @@ import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { IWebSocket, IWebSocketFactory } from './websocket';
 
 import { WebRTCAwarenessProvider } from './awareness';
+import { IRoomIdFactory } from './roomid';
 
 const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
 const signalingServers = signalingServerUrls
   ? JSON.parse(signalingServerUrls)
   : ['https://flyio-signaling-server.fly.dev'];
-
-export type IRoomIdFactory = (
-  format: string,
-  contentType: string,
-  path: string
-) => string;
-
-export const IRoomIdFactory = new Token<IRoomIdFactory>(
-  'jupyter-webrtc-provider:IRoomIdFactory'
-);
 
 /**
  * A class to provide Yjs synchronization over WebRTC.
@@ -116,12 +107,17 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
 
   private async _connect(): Promise<void> {
     this._webrtcProvider = new YWebrtcProvider(
-      this._roomIdFactory(this._format, this._contentType, this._path),
+      this._roomIdFactory.getRoomId(
+        this._format,
+        this._contentType,
+        this._path
+      ),
       this._sharedModel.ydoc,
       {
         signaling: this._signalingServers,
         awareness: this._awareness,
         webSocketFactory: this._webSocketFactory,
+        rommIdFactory: this._roomIdFactory,
         loadDocument: async (format: string, type: string, path: string) => {
           const model = await this._drive.get(path, {
             content: true,
@@ -158,7 +154,8 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
       {
         signaling: this._signalingServers,
         awareness: this._awareness,
-        webSocketFactory: this._webSocketFactory
+        webSocketFactory: this._webSocketFactory,
+        rommIdFactory: this._roomIdFactory
       }
     );
     this._webrtcProvider.on('synced', this._onSynced);
@@ -312,10 +309,18 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
-    this._roomIdFactory =
-      roomIdFactory ??
-      ((format: string, contentType: string, path: string) =>
-        `${format}:${contentType}:${path}`);
+    this._roomIdFactory = roomIdFactory ?? {
+      getRoomId: (format: string, contentType: string, path: string) =>
+        `${format}:${contentType}:${path}`,
+      parseRoomId: (roomId: string) => {
+        const split = roomId.split(':');
+        return {
+          format: split[0],
+          contentType: split[1],
+          path: split[2]
+        };
+      }
+    };
   }
 
   create(options: IDocumentProviderFactory.IOptions) {
