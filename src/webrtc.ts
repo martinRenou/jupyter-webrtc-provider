@@ -627,12 +627,12 @@ export class SignalingConn extends WebsocketClient {
         })
       );
     });
-    this.on('message', (m: any) => {
+    this.on('message', async (m: any) => {
       switch (m.type) {
         case 'publish': {
           const roomName = m.topic;
           if (m.clients === 1) {
-            const parsed = this.roomIdManager.parseRoomId(roomName);
+            const parsed = await this.roomIdManager.parseRoomId(roomName);
             if (parsed) {
               const { format, contentType, path } = parsed;
 

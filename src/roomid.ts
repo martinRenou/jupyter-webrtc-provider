@@ -17,17 +17,17 @@ export type IRoomIdManager = {
    * Get the format, contentType and path from the roomID
    * @param roomId the room id
    */
-  parseRoomId(roomId: string): {
+  parseRoomId(roomId: string): Promise<{
     format: string;
     contentType: string;
     path: string;
-  } | null;
+  } | null>;
 };
 
 export const DEFAULT_ROOM_ID_MANAGER: IRoomIdManager = {
   getRoomId: (format: string, contentType: string, path: string) =>
     `${format}:${contentType}:${path}`,
-  parseRoomId: (roomId: string) => {
+  parseRoomId: async (roomId: string) => {
     const split = roomId.split(':');
 
     if (split.length !== 3) {
