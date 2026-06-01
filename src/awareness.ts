@@ -4,6 +4,7 @@ import { IAwareness } from '@jupyter/ydoc';
 
 import { IWebSocketFactory } from './websocket';
 import { WebrtcProvider } from './webrtc';
+import { IRoomIdFactory } from './roomid';
 
 export interface IContent {
   type: string;
@@ -24,7 +25,8 @@ export class WebRTCAwarenessProvider extends WebrtcProvider {
     super(options.roomID, options.awareness.doc, {
       signaling: options.signalingServers,
       awareness: options.awareness,
-      webSocketFactory: options.webSocketFactory
+      webSocketFactory: options.webSocketFactory,
+      roomIdFactory: options.roomIdFactory
     });
     this.awareness = options.awareness;
     this._user = options.user;
@@ -94,5 +96,10 @@ export namespace WebRTCAwarenessProvider {
      * Factory function to create WebSocket connections.
      */
     webSocketFactory: IWebSocketFactory;
+
+    /**
+     * Factory for the room id
+     */
+    roomIdFactory: IRoomIdFactory;
   }
 }

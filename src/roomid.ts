@@ -23,3 +23,16 @@ export type IRoomIdFactory = {
     path: string;
   };
 };
+
+export const DEFAULT_ROOM_ID_FACTORY: IRoomIdFactory = {
+  getRoomId: (format: string, contentType: string, path: string) =>
+    `${format}:${contentType}:${path}`,
+  parseRoomId: (roomId: string) => {
+    const split = roomId.split(':');
+    return {
+      format: split[0],
+      contentType: split[1],
+      path: split[2]
+    };
+  }
+};

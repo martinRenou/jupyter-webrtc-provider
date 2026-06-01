@@ -23,7 +23,7 @@ import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { IWebSocket, IWebSocketFactory } from './websocket';
 
 import { WebRTCAwarenessProvider } from './awareness';
-import { IRoomIdFactory } from './roomid';
+import { DEFAULT_ROOM_ID_FACTORY, IRoomIdFactory } from './roomid';
 
 const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
@@ -309,18 +309,7 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
-    this._roomIdFactory = roomIdFactory ?? {
-      getRoomId: (format: string, contentType: string, path: string) =>
-        `${format}:${contentType}:${path}`,
-      parseRoomId: (roomId: string) => {
-        const split = roomId.split(':');
-        return {
-          format: split[0],
-          contentType: split[1],
-          path: split[2]
-        };
-      }
-    };
+    this._roomIdFactory = roomIdFactory ?? DEFAULT_ROOM_ID_FACTORY;
   }
 
   create(options: IDocumentProviderFactory.IOptions) {
@@ -352,10 +341,14 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
  * Awareness provider factory that creates WebSocket awareness providers.
  */
 class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
-  constructor(webSocketFactory: IWebSocketFactory | undefined) {
+  constructor(
+    webSocketFactory: IWebSocketFactory | undefined,
+    roomIdFactory: IRoomIdFactory | undefined
+  ) {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+    this._roomIdFactory = roomIdFactory ?? DEFAULT_ROOM_ID_FACTORY;
   }
 
   create(options: IAwarenessProviderFactory.IOptions) {
@@ -368,11 +361,13 @@ class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
       roomID: options.roomID,
       awareness: options.awareness,
       user: options.user,
-      webSocketFactory: this._webSocketFactory
+      webSocketFactory: this._webSocketFactory,
+      roomIdFactory: this._roomIdFactory
     });
   }
 
   private _webSocketFactory: IWebSocketFactory;
+  private _roomIdFactory: IRoomIdFactory;
 }
 
 /**
@@ -403,12 +398,16 @@ export const awarenessProviderFactoryPlugin: JupyterFrontEndPlugin<IAwarenessPro
     id: PLUGIN_ID + '-awareness-factory',
     description: 'Provides a WebRTC awareness provider factory.',
     requires: [],
-    optional: [IWebSocketFactory],
+    optional: [IWebSocketFactory, IRoomIdFactory],
     provides: IAwarenessProviderFactory,
     activate: async (
       app: JupyterFrontEnd,
-      webSocketFactory?: IWebSocketFactory
+      webSocketFactory?: IWebSocketFactory,
+      roomIdFactory?: IRoomIdFactory
     ) => {
-      return new WebRTCAwarenessProviderFactory(webSocketFactory);
+      return new WebRTCAwarenessProviderFactory(
+        webSocketFactory,
+        roomIdFactory
+      );
     }
   };
