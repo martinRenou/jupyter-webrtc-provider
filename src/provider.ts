@@ -10,7 +10,7 @@ import { ITranslator, TranslationBundle } from '@jupyterlab/translation';
 import { IDocumentProvider } from '@jupyter/collaborative-drive';
 import { ServerConnection, User, Contents } from '@jupyterlab/services';
 
-import { PromiseDelegate } from '@lumino/coreutils';
+import { PromiseDelegate, Token } from '@lumino/coreutils';
 import { Signal } from '@lumino/signaling';
 
 import { DocumentChange, YDocument } from '@jupyter/ydoc';
@@ -29,6 +29,16 @@ const signalingServerUrls = PageConfig.getOption('signalingServers');
 const signalingServers = signalingServerUrls
   ? JSON.parse(signalingServerUrls)
   : ['https://flyio-signaling-server.fly.dev'];
+
+export type IRoomIdFactory = (
+  format: string,
+  contentType: string,
+  path: string
+) => string;
+
+export const IRoomIdFactory = new Token<IRoomIdFactory>(
+  'jupyter-webrtc-provider:IRoomIdFactory'
+);
 
 /**
  * A class to provide Yjs synchronization over WebRTC.
@@ -51,6 +61,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
     this._signalingServers = options.signalingServers;
     this._drive = options.drive;
     this._webSocketFactory = options.webSocketFactory;
+    this._roomIdFactory = options.roomIdFactory;
     const user = options.user;
 
     user.ready
@@ -105,7 +116,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
 
   private async _connect(): Promise<void> {
     this._webrtcProvider = new YWebrtcProvider(
-      `${this._format}:${this._contentType}:${this._path}`,
+      this._roomIdFactory(this._format, this._contentType, this._path),
       this._sharedModel.ydoc,
       {
         signaling: this._signalingServers,
@@ -197,6 +208,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
   private _signalingServers: string[];
   private _drive: Contents.IDrive;
   private _webSocketFactory: IWebSocketFactory;
+  private _roomIdFactory: IRoomIdFactory;
 }
 
 /**
@@ -256,6 +268,11 @@ export namespace WebRTCProvider {
      * Factory function to create WebSocket connections.
      */
     webSocketFactory: IWebSocketFactory;
+
+    /**
+     * The routine for computing the room id, given the file information.
+     */
+    roomIdFactory: IRoomIdFactory;
   }
 }
 
@@ -288,12 +305,17 @@ function getAbsoluteUrls(
 class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
   constructor(
     trans: TranslationBundle,
-    webSocketFactory: IWebSocketFactory | undefined
+    webSocketFactory: IWebSocketFactory | undefined,
+    roomIdFactory: IRoomIdFactory | undefined = undefined
   ) {
     this._trans = trans;
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+    this._roomIdFactory =
+      roomIdFactory ??
+      ((format: string, contentType: string, path: string) =>
+        `${format}:${contentType}:${path}`);
   }
 
   create(options: IDocumentProviderFactory.IOptions) {
@@ -311,12 +333,14 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
       translator: this._trans,
       serverSettings: options.serverSettings,
       drive: options.drive,
-      webSocketFactory: this._webSocketFactory
+      webSocketFactory: this._webSocketFactory,
+      roomIdFactory: this._roomIdFactory
     });
   }
 
   private _trans: TranslationBundle;
   private _webSocketFactory: IWebSocketFactory;
+  private _roomIdFactory: IRoomIdFactory;
 }
 
 /**
