@@ -107,7 +107,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
 
   private async _connect(): Promise<void> {
     this._webrtcProvider = new YWebrtcProvider(
-      this._roomIdManager.getRoomId(
+      await this._roomIdManager.getRoomId(
         this._format,
         this._contentType,
         this._path

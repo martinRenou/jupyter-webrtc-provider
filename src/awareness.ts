@@ -98,7 +98,7 @@ export namespace WebRTCAwarenessProvider {
     webSocketFactory: IWebSocketFactory;
 
     /**
-     * Factory for the room id
+     * Room ID manager
      */
     roomIdManager: IRoomIdManager;
   }
