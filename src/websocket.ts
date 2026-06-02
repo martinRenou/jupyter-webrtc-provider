@@ -13,7 +13,7 @@ export interface IWebSocket {
 export type IWebSocketFactory = (url: string) => Promise<IWebSocket>;
 
 export const IWebSocketFactory = new Token<IWebSocketFactory>(
-  'jupyter-webrtc-provider:IWebSocketFactory'
+  'jupyter-webrtc-provider:websocket-factory'
 );
 
 type EventHandler = (...args: any[]) => void;

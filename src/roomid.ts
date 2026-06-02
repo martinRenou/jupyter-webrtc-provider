@@ -1,7 +1,7 @@
 import { Token } from '@lumino/coreutils';
 
 export const IRoomIdManager = new Token<IRoomIdManager>(
-  'jupyter-webrtc-provider:IRoomIdManager'
+  'jupyter-webrtc-provider:room-id-manager'
 );
 
 export type IRoomIdManager = {
