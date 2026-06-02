@@ -646,7 +646,7 @@ export class SignalingConn extends WebsocketClient {
                 provider.loadDocument &&
                 !provider.contentLoaded
               ) {
-                provider.loadDocument(format, contentType, path);
+                await provider.loadDocument(format, contentType, path);
                 provider.contentLoaded = true;
               }
               provider?.emit('firstClient', [{ roomName }]);

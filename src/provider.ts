@@ -127,11 +127,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
           if (model.content === undefined) {
             return;
           }
-          try {
-            this._sharedModel.source = model.content;
-          } catch (e) {
-            console.error('Failed to load file content:', e);
-          }
+          this._sharedModel.source = model.content;
 
           // Mark document as not dirty after loading
           const state = this._sharedModel.ydoc.getMap('state');
