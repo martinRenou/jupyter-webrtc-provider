@@ -1,6 +1,6 @@
 {
     "name": "jupyter-webrtc-provider",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "description": "A JupyterLab extension for a WebRTC shared document provider.",
     "keywords": [
         "jupyter",
