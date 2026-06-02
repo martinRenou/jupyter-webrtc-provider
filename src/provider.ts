@@ -25,6 +25,8 @@ import { IWebSocket, IWebSocketFactory } from './websocket';
 import { WebRTCAwarenessProvider } from './awareness';
 import { DEFAULT_ROOM_ID_MANAGER, IRoomIdManager } from './roomid';
 
+const DEFAULT_WEBSOCKET_FACTORY = async (url: string) =>
+  new WebSocket(url) as unknown as IWebSocket;
 const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
 const signalingServers = signalingServerUrls
@@ -303,12 +305,10 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
   constructor(
     trans: TranslationBundle,
     webSocketFactory: IWebSocketFactory | undefined,
-    roomIdManager: IRoomIdManager | undefined = undefined
+    roomIdManager: IRoomIdManager | undefined
   ) {
     this._trans = trans;
-    this._webSocketFactory =
-      webSocketFactory ??
-      (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+    this._webSocketFactory = webSocketFactory ?? DEFAULT_WEBSOCKET_FACTORY;
     this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
@@ -345,9 +345,7 @@ class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
     webSocketFactory: IWebSocketFactory | undefined,
     roomIdManager: IRoomIdManager | undefined
   ) {
-    this._webSocketFactory =
-      webSocketFactory ??
-      (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+    this._webSocketFactory = webSocketFactory ?? DEFAULT_WEBSOCKET_FACTORY;
     this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
@@ -378,15 +376,20 @@ export const documentProviderFactoryPlugin: JupyterFrontEndPlugin<IDocumentProvi
     id: PLUGIN_ID + '-document-factory',
     description: 'Provides a WebRTC document provider factory.',
     requires: [ITranslator],
-    optional: [IWebSocketFactory],
+    optional: [IWebSocketFactory, IRoomIdManager],
     provides: IDocumentProviderFactory,
     activate: async (
       app: JupyterFrontEnd,
       translator: ITranslator,
-      webSocketFactory?: IWebSocketFactory
+      webSocketFactory?: IWebSocketFactory,
+      roomIdManager?: IRoomIdManager
     ) => {
       const trans = translator.load('jupyter_collaboration');
-      return new WebRTCDocumentProviderFactory(trans, webSocketFactory);
+      return new WebRTCDocumentProviderFactory(
+        trans,
+        webSocketFactory,
+        roomIdManager
+      );
     }
   };
 
