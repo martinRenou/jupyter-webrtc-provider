@@ -10,7 +10,7 @@ import { ITranslator, TranslationBundle } from '@jupyterlab/translation';
 import { IDocumentProvider } from '@jupyter/collaborative-drive';
 import { ServerConnection, User, Contents } from '@jupyterlab/services';
 
-import { PromiseDelegate, Token } from '@lumino/coreutils';
+import { PromiseDelegate } from '@lumino/coreutils';
 import { Signal } from '@lumino/signaling';
 
 import { DocumentChange, YDocument } from '@jupyter/ydoc';
@@ -23,22 +23,13 @@ import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 import { IWebSocket, IWebSocketFactory } from './websocket';
 
 import { WebRTCAwarenessProvider } from './awareness';
+import { DEFAULT_ROOM_ID_MANAGER, IRoomIdManager } from './roomid';
 
 const PLUGIN_ID = 'jupyter-webrtc-provider';
 const signalingServerUrls = PageConfig.getOption('signalingServers');
 const signalingServers = signalingServerUrls
   ? JSON.parse(signalingServerUrls)
   : ['https://flyio-signaling-server.fly.dev'];
-
-export type IRoomIdFactory = (
-  format: string,
-  contentType: string,
-  path: string
-) => string;
-
-export const IRoomIdFactory = new Token<IRoomIdFactory>(
-  'jupyter-webrtc-provider:IRoomIdFactory'
-);
 
 /**
  * A class to provide Yjs synchronization over WebRTC.
@@ -61,7 +52,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
     this._signalingServers = options.signalingServers;
     this._drive = options.drive;
     this._webSocketFactory = options.webSocketFactory;
-    this._roomIdFactory = options.roomIdFactory;
+    this._roomIdManager = options.roomIdManager;
     const user = options.user;
 
     user.ready
@@ -116,12 +107,17 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
 
   private async _connect(): Promise<void> {
     this._webrtcProvider = new YWebrtcProvider(
-      this._roomIdFactory(this._format, this._contentType, this._path),
+      await this._roomIdManager.getRoomId(
+        this._format,
+        this._contentType,
+        this._path
+      ),
       this._sharedModel.ydoc,
       {
         signaling: this._signalingServers,
         awareness: this._awareness,
         webSocketFactory: this._webSocketFactory,
+        roomIdManager: this._roomIdManager,
         loadDocument: async (format: string, type: string, path: string) => {
           const model = await this._drive.get(path, {
             content: true,
@@ -158,7 +154,8 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
       {
         signaling: this._signalingServers,
         awareness: this._awareness,
-        webSocketFactory: this._webSocketFactory
+        webSocketFactory: this._webSocketFactory,
+        roomIdManager: this._roomIdManager
       }
     );
     this._webrtcProvider.on('synced', this._onSynced);
@@ -208,7 +205,7 @@ export class WebRTCProvider implements IDocumentProvider, IForkProvider {
   private _signalingServers: string[];
   private _drive: Contents.IDrive;
   private _webSocketFactory: IWebSocketFactory;
-  private _roomIdFactory: IRoomIdFactory;
+  private _roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -272,7 +269,7 @@ export namespace WebRTCProvider {
     /**
      * The routine for computing the room id, given the file information.
      */
-    roomIdFactory: IRoomIdFactory;
+    roomIdManager: IRoomIdManager;
   }
 }
 
@@ -306,16 +303,13 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
   constructor(
     trans: TranslationBundle,
     webSocketFactory: IWebSocketFactory | undefined,
-    roomIdFactory: IRoomIdFactory | undefined = undefined
+    roomIdManager: IRoomIdManager | undefined = undefined
   ) {
     this._trans = trans;
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
-    this._roomIdFactory =
-      roomIdFactory ??
-      ((format: string, contentType: string, path: string) =>
-        `${format}:${contentType}:${path}`);
+    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
   create(options: IDocumentProviderFactory.IOptions) {
@@ -334,23 +328,27 @@ class WebRTCDocumentProviderFactory implements IDocumentProviderFactory {
       serverSettings: options.serverSettings,
       drive: options.drive,
       webSocketFactory: this._webSocketFactory,
-      roomIdFactory: this._roomIdFactory
+      roomIdManager: this._roomIdManager
     });
   }
 
   private _trans: TranslationBundle;
   private _webSocketFactory: IWebSocketFactory;
-  private _roomIdFactory: IRoomIdFactory;
+  private _roomIdManager: IRoomIdManager;
 }
 
 /**
  * Awareness provider factory that creates WebSocket awareness providers.
  */
 class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
-  constructor(webSocketFactory: IWebSocketFactory | undefined) {
+  constructor(
+    webSocketFactory: IWebSocketFactory | undefined,
+    roomIdManager: IRoomIdManager | undefined
+  ) {
     this._webSocketFactory =
       webSocketFactory ??
       (async (url: string) => new WebSocket(url) as unknown as IWebSocket);
+    this._roomIdManager = roomIdManager ?? DEFAULT_ROOM_ID_MANAGER;
   }
 
   create(options: IAwarenessProviderFactory.IOptions) {
@@ -363,11 +361,13 @@ class WebRTCAwarenessProviderFactory implements IAwarenessProviderFactory {
       roomID: options.roomID,
       awareness: options.awareness,
       user: options.user,
-      webSocketFactory: this._webSocketFactory
+      webSocketFactory: this._webSocketFactory,
+      roomIdManager: this._roomIdManager
     });
   }
 
   private _webSocketFactory: IWebSocketFactory;
+  private _roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -398,12 +398,16 @@ export const awarenessProviderFactoryPlugin: JupyterFrontEndPlugin<IAwarenessPro
     id: PLUGIN_ID + '-awareness-factory',
     description: 'Provides a WebRTC awareness provider factory.',
     requires: [],
-    optional: [IWebSocketFactory],
+    optional: [IWebSocketFactory, IRoomIdManager],
     provides: IAwarenessProviderFactory,
     activate: async (
       app: JupyterFrontEnd,
-      webSocketFactory?: IWebSocketFactory
+      webSocketFactory?: IWebSocketFactory,
+      roomIdManager?: IRoomIdManager
     ) => {
-      return new WebRTCAwarenessProviderFactory(webSocketFactory);
+      return new WebRTCAwarenessProviderFactory(
+        webSocketFactory,
+        roomIdManager
+      );
     }
   };

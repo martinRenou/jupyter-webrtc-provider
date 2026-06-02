@@ -19,6 +19,7 @@ import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 
 import * as cryptoutils from './crypto';
+import { IRoomIdManager } from './roomid';
 
 const log = logging.createModuleLogger('webrtc');
 
@@ -607,9 +608,14 @@ const publishSignalingMessage = (
 export class SignalingConn extends WebsocketClient {
   providers: Set<WebrtcProvider>;
 
-  constructor(url: string, webSocketFactory: IWebSocketFactory) {
+  constructor(
+    url: string,
+    webSocketFactory: IWebSocketFactory,
+    roomIdManager: IRoomIdManager
+  ) {
     super(url, { webSocketFactory });
     this.providers = new Set();
+    this.roomIdManager = roomIdManager;
     this.on('connect', () => {
       log(`connected (${url})`);
       const topics = Array.from(rooms.keys());
@@ -621,17 +627,16 @@ export class SignalingConn extends WebsocketClient {
         })
       );
     });
-    this.on('message', (m: any) => {
+    this.on('message', async (m: any) => {
       switch (m.type) {
         case 'publish': {
           const roomName = m.topic;
           if (m.clients === 1) {
-            const parts = roomName.split(':', 3);
-            if (parts.length === 3) {
+            const parsed = await this.roomIdManager.parseRoomId(roomName);
+            if (parsed) {
+              const { format, contentType, path } = parsed;
+
               // we are the first client and it's a stored document, let's load it
-              const fileFormat = parts[0];
-              const fileType = parts[1];
-              const filePath = parts[2];
               // Find the provider with the matching roomName
               const provider = Array.from(this.providers).find(
                 p => p.roomName === roomName
@@ -641,7 +646,7 @@ export class SignalingConn extends WebsocketClient {
                 provider.loadDocument &&
                 !provider.contentLoaded
               ) {
-                provider.loadDocument(fileFormat, fileType, filePath);
+                provider.loadDocument(format, contentType, path);
                 provider.contentLoaded = true;
               }
               provider?.emit('firstClient', [{ roomName }]);
@@ -734,6 +739,8 @@ export class SignalingConn extends WebsocketClient {
     });
     this.on('disconnect', () => log(`disconnect (${url})`));
   }
+
+  roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -758,6 +765,7 @@ export interface IProviderOptions {
     | null;
   /** Factory function to create WebSocket connections. */
   webSocketFactory: IWebSocketFactory;
+  roomIdManager: IRoomIdManager;
 }
 
 /**
@@ -795,6 +803,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
   signalingConns: SignalingConn[];
   maxConns: number;
   webSocketFactory: IWebSocketFactory;
+  roomIdManager: IRoomIdManager;
   peerOpts: Peer.Options;
   loadDocument:
     | ((format: string, type: string, path: string) => Promise<any>)
@@ -819,7 +828,8 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       filterBcConns = true,
       peerOpts = {}, // simple-peer options. See https://github.com/feross/simple-peer#peer--new-peeropts
       loadDocument = null,
-      webSocketFactory
+      webSocketFactory,
+      roomIdManager
     }: IProviderOptions
   ) {
     super();
@@ -834,6 +844,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
     this.peerOpts = peerOpts;
     this.loadDocument = loadDocument;
     this.webSocketFactory = webSocketFactory;
+    this.roomIdManager = roomIdManager;
     this.contentLoaded = false;
     this.key = password
       ? cryptoutils.deriveKey(password, roomName)
@@ -873,7 +884,7 @@ export class WebrtcProvider extends ObservableV2<IWebrtcProviderEvents> {
       const signalingConn = map.setIfUndefined(
         signalingConns,
         url,
-        () => new SignalingConn(url, this.webSocketFactory)
+        () => new SignalingConn(url, this.webSocketFactory, this.roomIdManager)
       );
       this.signalingConns.push(signalingConn);
       signalingConn.providers.add(this);
